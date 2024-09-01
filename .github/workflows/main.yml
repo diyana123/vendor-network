@@ -110,7 +110,7 @@ jobs:
 
       # - name: Terraform Plan Status
       #   id: status
-      #   working-directory: ./terraform
+      #   working-directory: ./terraform  
       #   if: steps.plan.outcome == 'failure'
       #   run: exit 1
 
