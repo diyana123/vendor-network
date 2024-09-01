@@ -1,21 +1,20 @@
+name: Build network
 
-name: "Build network"
 on:
   push:
     branches:
       - main
   pull_request:
+
 permissions:
-      id-token: write
-      contents: read
-      pull-requests: write 
+  id-token: write
+  contents: read
+  pull-requests: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
-        working-directory: .
+
     steps:
       - name: Git checkout
         uses: actions/checkout@v3
@@ -25,8 +24,17 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
           role-session-name: ${{ secrets.AWS_OIDC_ROLE_SESSION_NAME }}
-          aws-region: ${{ secrets.AWS_REGION }}  
- 
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # Optional: Debug IAM Role
+      - name: Debug IAM Role
+        run: |
+          aws sts get-caller-identity
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+
+      # Add your Terraform or other deployment steps here
+      # Uncomment and modify as needed
       # - name: Setup Terraform 
       #   uses: hashicorp/setup-terraform@v2
       #   with:
