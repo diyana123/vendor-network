@@ -26,7 +26,7 @@ jobs:
           role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
           role-session-name: ${{ secrets.AWS_OIDC_ROLE_SESSION_NAME }}
           aws-region: ${{ secrets.AWS_REGION }}
-
+ 
       # - name: Setup Terraform 
       #   uses: hashicorp/setup-terraform@v2
       #   with:
