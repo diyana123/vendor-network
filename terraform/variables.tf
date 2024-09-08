@@ -14,5 +14,5 @@ variable "private_subnets" {
     }
 
     variable "availability_zones" {
-        default = ["eu-north-1a", "eu-north-2b"]
+        default = ["eu-north-1a", "eu-north-1b"]
     }
