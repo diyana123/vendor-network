@@ -4,11 +4,10 @@ on:
     branches:
       - main
   pull_request:
-
 permissions:
   id-token: write
   contents: read
-  pull-requests: write
+  pull-requests: write 
 
 jobs:
   deploy:
@@ -40,13 +39,6 @@ jobs:
         run: terraform fmt -check
         continue-on-error: true
 
-      # Debug step to check if AWS_REGION, AWS_TFSTATE_BUCKET_NAME, and AWS_TFSTATE_KEY_NAME are set correctly
-      - name: Debug Environment Variables
-        run: |
-          echo "AWS_REGION: ${{ secrets.AWS_REGION }}"
-          echo "AWS_BUCKET_NAME: ${{ secrets.AWS_TFSTATE_BUCKET_NAME }}"
-          echo "AWS_BUCKET_KEY_NAME: ${{ secrets.AWS_TFSTATE_KEY_NAME }}"
-
       - name: Terraform Init
         id: init
         working-directory: ./terraform
@@ -55,15 +47,14 @@ jobs:
           AWS_BUCKET_KEY_NAME: ${{ secrets.AWS_TFSTATE_KEY_NAME }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
         run: > 
-          terraform init 
-            -backend-config="bucket=${{ secrets.AWS_TFSTATE_BUCKET_NAME }}" 
-            -backend-config="key=${{ secrets.AWS_TFSTATE_KEY_NAME }}" 
-            -backend-config="region=${{ secrets.AWS_REGION }}"
+          terraform init -backend-config="bucket=${{ secrets.AWS_TFSTATE_BUCKET_NAME }}" 
+          -backend-config="key=${{ secrets.AWS_TFSTATE_KEY_NAME }}" 
+          -backend-config="region=${{ secrets.AWS_REGION }}"
 
       - name: Terraform Validate
         id: validate
-        run: terraform validate -no-color
         working-directory: ./terraform
+        run: terraform validate -no-color
 
       - name: Terraform Plan
         id: plan
@@ -71,44 +62,28 @@ jobs:
         run: terraform plan -no-color
         if: github.event_name == 'pull_request'
 
-      - name: Terraform Run
+      - name: Comment Terraform Plan Output
         id: run
         uses: actions/github-script@v6
         if: github.event_name == 'pull_request'
-        env:
-          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
         with:
-          working-directory: ./terraform
           github-token: ${{ secrets.GITHUB_TOKEN }}
-        script: |
-          const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
-          #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
-          #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
-          <details><summary>Validation Output</summary>
-          \`\`\`\n
-          ${{ steps.validate.outputs.stdout }}
-          \`\`\`
+          script: |
+            const fmtResult = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+            #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\``;
+            
+            const planOutput = `\`\`\`\n${{ steps.plan.outputs.stdout }}\n\`\`\``;
 
-          </details>
-
-          #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
-
-          <details><summary>Show Plan</summary>
-
-          \`\`\`\n
-          ${process.env.PLAN}
-          \`\`\`
-
-          </details>
-
-          *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
-
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: output
-          })
+            const commentBody = fmtResult + `\n<details><summary>Show Plan</summary>\n${planOutput}\n</details>`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: commentBody
+            });
 
       - name: Terraform Plan Status
         id: status
