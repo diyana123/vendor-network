@@ -33,6 +33,9 @@ jobs:
           terraform_version: 1.2.5
           working-directory: ./terraform
 
+      - name: Debug Secrets
+        run: echo "Bucket: ${{ secrets.AWS_TFSTATE_BUCKET_NAME }}, Key: ${{ secrets.AWS_TFSTATE_KEY_NAME }}, Region: ${{ secrets.AWS_REGION }}"
+
       - name: Terraform fmt
         id: fmt
         working-directory: ./terraform
@@ -55,46 +58,3 @@ jobs:
         id: validate
         working-directory: ./terraform
         run: terraform validate -no-color
-
-      - name: Terraform Plan
-        id: plan
-        working-directory: ./terraform
-        run: terraform plan -no-color
-        if: github.event_name == 'pull_request'
-
-      - name: Comment Terraform Plan Output
-        id: run
-        uses: actions/github-script@v6
-        if: github.event_name == 'pull_request'
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const fmtResult = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
-            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
-            #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
-            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\``;
-            
-            const planOutput = `\`\`\`\n${{ steps.plan.outputs.stdout }}\n\`\`\``;
-
-            const commentBody = fmtResult + `\n<details><summary>Show Plan</summary>\n${planOutput}\n</details>`;
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: commentBody
-            });
-
-      - name: Terraform Plan Status
-        id: status
-        working-directory: ./terraform
-        if: steps.plan.outcome == 'failure'
-        run: exit 1
-
-      - name: Terraform Apply
-        id: apply
-        working-directory: ./terraform
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: terraform apply -auto-approve -input=false
-        env:
-          TF_VAR_aws_region: ${{ secrets.AWS_REGION }}
